@@ -1,0 +1,3 @@
+print "Hello, World!";
+print "Welcome to Reyna Lang.";
+print 123 * 456;

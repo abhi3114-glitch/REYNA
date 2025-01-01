@@ -1,0 +1,231 @@
+================================================================================
+REYNA PROGRAMMING LANGUAGE: THE DEFINITIVE INTERNALS GUIDE
+Author: Abhi
+Version: 2.0 (God Mode)
+================================================================================
+
+This document is a "maximum detail" technical reference for the Reyna programming language. It explains every component from the source code up to the runtime execution. Use this to master your language's internal architecture.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1. Project Architecture & File Structure
+2. Phase 1: Lexical Analysis (The Scanner)
+3. Phase 2: Parsing (The Syntax Tree)
+4. Phase 3: Semantic Analysis (Static Typing)
+5. Phase 4: Bytecode Compilation (The Chunk)
+6. Phase 5: The Virtual Machine (The Engine)
+7. Phase 6: Memory Management (Garbage Collection)
+8. Phase 7: Runtime Representation (Objects & Values)
+9. Advanced Topics: Closures & Upvalues
+10. Advanced Topics: Native Functions (FFI)
+
+--------------------------------------------------------------------------------
+1. PROJECT ARCHITECTURE & FILE STRUCTURE
+--------------------------------------------------------------------------------
+Reyna is a "Hosted Language", meaning the compiler and VM are written in Python, but it defines its own execution model unrelated to Python's internal semantics.
+
+File Map:
+- src/main.py ......... Entry point. Orchestrates the pipeline.
+- src/token_type.py ... Enum of all valid syntax units (keywords, symbols).
+- src/lexer.py ........ Converts string source -> List[Token].
+- src/ast_nodes.py .... Defines classes for tree nodes (Binary, Literal, Stmt).
+- src/parser.py ....... Converts tokens -> Abstract Syntax Tree (AST).
+- src/type_checker.py . Validates types (Int vs String) before compilation.
+- src/compiler.py ..... Flattens AST -> Bytecode (Chunk).
+- src/reyna_chunk.py .. Defines the Bytecode container and Opcodes.
+- src/vm_core.py ...... The Stack-based Virtual Machine CPU.
+- src/reyna_vals.py ... Runtime value classes (ObjString, ObjFunction).
+- src/reyna_gc.py ..... The Garbage Collector (Memory Manager).
+- src/stdlib.py ....... Native functions (clock, print, file I/O).
+
+--------------------------------------------------------------------------------
+2. PHASE 1: LEXICAL ANALYSIS (The Scanner)
+--------------------------------------------------------------------------------
+Source: src/lexer.py
+
+The Lexer's job is **Text Processing**. It scans the source code character by character to identify "Tokens".
+
+*   **Logic**: It maintains `start` and `current` pointers into the source string.
+*   **The Loop**:
+    1.  Read a character.
+    2.  Switch/If-Else based on character:
+        -   `(` -> Create TOKEN_LEFT_PAREN.
+        -   `/` -> Check next char. If `/`, it's a comment (consume until newline). Else, TOKEN_SLASH.
+        -   `"` -> Trigger `string()` method (consume until closing `"`).
+        -   Digit -> Trigger `number()` method.
+        -   Letter -> Trigger `identifier()` method.
+    3.  **Keywords**: When reading an identifier (like "let"), it checks a Python dictionary `keywords`.
+        -   If found in dict -> TOKEN_LET.
+        -   If not found -> TOKEN_IDENTIFIER.
+
+*   **Key Detail**: It tracks line numbers for error reporting.
+
+--------------------------------------------------------------------------------
+3. PHASE 2: PARSING (The Syntax Tree)
+--------------------------------------------------------------------------------
+Source: src/parser.py
+
+The Parser's job is **Structure**. It turns a flat list of tokens into a hierarchical tree.
+
+*   **Method**: Recursive Descent Parsing.
+*   **Grammar Hierarchy** (from lowest to highest precedence):
+    -   `declaration()`: Handles `class`, `fn`, `let`, `struct`.
+    -   `statement()`: Handles `if`, `while`, `return`, expression statements.
+    -   `expression()`: Handles assignment (`=`).
+    -   `equality()`: `==`, `!=`
+    -   `comparison()`: `<`, `>`, `<=`, `>=`
+    -   `term()`: `+`, `-`
+    -   `factor()`: `*`, `/`
+    -   `unary()`: `!`, `-`
+    -   `call()`: Function calls `foo()`, Method calls `obj.bar`.
+    -   `primary()`: Numbers, Strings, booleans, parentheses grouping.
+
+*   **Helper Methods**:
+    -   `match(token_type)`: "If current token is X, consume it and return True."
+    -   `consume(token_type, error_msg)`: "Current token MUST be X. If not, throw error."
+
+--------------------------------------------------------------------------------
+4. PHASE 3: SEMANTIC ANALYSIS (Static Typing)
+--------------------------------------------------------------------------------
+Source: src/type_checker.py
+
+The Type Checker's job is **Safety**. It walks the AST to enforce rules.
+
+*   **Scopes**: It uses a list of dictionaries `self.scopes = [{}]`.
+    -   `visit_block_stmt`: `scopes.append({})` -> visit statements -> `scopes.pop()`.
+*   **Resolution**: When it sees a variable `x`, it looks in the top scope, then the next, etc.
+*   **Type Inference**:
+    -   `let x = 10;` -> It compiles `10` (type Int) and saves `x: Int` in the scope.
+    -   `x = "hello";` -> It checks `x` in scope (Int) vs "hello" (String) -> ERROR.
+
+--------------------------------------------------------------------------------
+5. PHASE 4: BYTECODE COMPILATION
+--------------------------------------------------------------------------------
+Source: src/compiler.py
+
+The Compiler's job is **FLATTENING**. Trees are slow to traverse; Lists are fast.
+
+*   **The Chunk**: A blob of data containing:
+    -   `code`: A list of byte integers (Opcodes + Operands).
+    -   `constants`: A list of literal values (Numbers, Strings, Objects).
+
+*   **Compilation Examples**:
+    -   `print 5`:
+        1.  Make constant `5`. Get index `0`.
+        2.  Emit `OP_CONSTANT`, `0`.
+        3.  Emit `OP_PRINT`.
+    
+    -   `if (condition) { body }`:
+        1.  Compile condition.
+        2.  Emit `OP_JUMP_IF_FALSE` (placeholder operand).
+        3.  Compile body.
+        4.  Patch the placeholder to point *after* the body.
+
+--------------------------------------------------------------------------------
+6. PHASE 5: THE VIRTUAL MACHINE (The Engine)
+--------------------------------------------------------------------------------
+Source: src/vm_core.py
+
+The VM is a software CPU. It is **Stack-Based**.
+
+*   **Core Components**:
+    -   `ip` (Instruction Pointer): Index of the current bytecode instruction.
+    -   `stack`: A Python list used as a push-down automaton.
+    -   `frames`: A stack of `CallFrame` objects.
+        -   `CallFrame` stores: `ip`, `closure` (function being run), and `slots` (offset in the stack where local variables begin).
+
+*   **The Execution Loop (`run()`)**:
+    1.  Read byte at `ip`. Increment `ip`.
+    2.  Instruction Dispatch (Big If-Elif chain):
+        -   `OP_ADD`: Pop B, Pop A. Push A + B.
+        -   `OP_GET_LOCAL`: Read stack at `frame.slots + operand`. Push value.
+        -   `OP_CALL`:
+            1.  Read argument count.
+            2.  Peek function object from stack.
+            3.  Create new `CallFrame`.
+            4.  Push frame.
+            5.  Set `ip` to function's start.
+
+*   **Return Convention**:
+    -   `OP_RETURN`: Pop the result. Discard the current `CallFrame`. Discard the function arguments from the stack. Push the result back for the caller.
+
+--------------------------------------------------------------------------------
+7. PHASE 6: MEMORY MANAGEMENT (Garbage Collection)
+--------------------------------------------------------------------------------
+Source: src/reyna_gc.py
+
+Reyna uses a **Mark-and-Sweep** Garbage Collector. It has no "borrow checker" (like Rust); it manages memory for you.
+
+*   **Algorithm**:
+    1.  **Mark Roots**: The GC looks at everything the VM directly "knows" about:
+        -   The Logic Stack.
+        -   Global Variables.
+        -   Open Upvalues.
+        -   These objects are colored **GRAY** (Worklist).
+    2.  **Trace (Mark Phase)**:
+        -   Pop a GRAY object. Color it **BLACK** (Safe).
+        -   Find all objects *it* points to (fields in a struct, upvalues in a closure).
+        -   Color those children GRAY and add to Worklist.
+        -   Repeat until Worklist is empty.
+    3.  **Sweep**:
+        -   Iterate through the entire Heap.
+        -   If an object is WHITE (not marked), it is unconnected. **Delete it**.
+        -   Reset BLACK tokens to WHITE for the next cycle.
+
+--------------------------------------------------------------------------------
+8. PHASE 7: RUNTIME REPRESENTATION (reyna_vals.py)
+--------------------------------------------------------------------------------
+How is a "String" or "Function" stored in Python memory?
+
+*   `Obj` (Base Class)
+    -   `ObjString`: Wraps a python string.
+    -   `ObjFunction`: Stores `arity`, `chunk`, `name`.
+    -   `ObjStruct`: Stores definition name.
+    -   `ObjInstance`: Stores `fields` (Dictionary).
+    -   `ObjClosure`: Used for runtime functions. Wraps `ObjFunction` + `upvalues`.
+
+*   **Note**: Simple types (int/float/bool) use raw Python `int`/`float`/`bool` for speed. Only complex types inherit from `Obj`.
+
+--------------------------------------------------------------------------------
+9. ADVANCED TOPIC: CLOSURES & UPVALUES
+--------------------------------------------------------------------------------
+This is the hardest concept in interpreter engineering.
+
+*   **Problem**:
+    ```javascript
+    fn outer() {
+      let x = 10;
+      fn inner() { return x; } // 'inner' needs 'x', but 'outer' is returning!
+      return inner;
+    }
+    ```
+    When `outer` returns, its stack frame is popped. `x` is gone. How does `inner` survive?
+
+*   **Solution: Upvalues**
+    1.  When compiling `inner`, the compiler sees `x` is explicitly "non-local" but not global. It creates an `OP_GET_UPVALUE` instruction.
+    2.  At runtime, when `outer` creates the closure `inner`, the VM creates an `ObjUpvalue`.
+    3.  **Open Upvalue**: While `outer` is running, the Upvalue points directly to the Stack slot of `x`.
+    4.  **Close Upvalue**: When `outer` returns, the VM "closes" the upvalue. It copies the value of `x` from the Stack into the `ObjUpvalue` object itself on the Heap.
+    5.  `inner` now references the Heap copy.
+
+--------------------------------------------------------------------------------
+10. ADVANCED TOPIC: NATIVE FUNCTIONS (FFI)
+--------------------------------------------------------------------------------
+Source: src/stdlib.py
+
+How does `print` work? It's not bytecode.
+
+*   `ObjNative`: A special object type that holds a reference to a *Python Function*.
+*   **Execution**:
+    -   When `OP_CALL` sees an `ObjNative`, it doesn't create a `CallFrame`.
+    -   It acts as a bridge. It takes arguments from the stack, passes them to the Python function (e.g., `time.time()`), and pushes the Python result back to the stack.
+
+--------------------------------------------------------------------------------
+This concludes the Deep Dive. You now possess the knowledge of a Language Implementer.
+
+
+
+
+
+

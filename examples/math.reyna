@@ -1,0 +1,14 @@
+// Math utilities module
+fn add(a: int64, b: int64) -> int64 {
+    return a + b;
+}
+
+fn multiply(a: int64, b: int64) -> int64 {
+    return a * b;
+}
+
+fn square(n: int64) -> int64 {
+    return n * n;
+}
+
+let PI: float64 = 3.14159;

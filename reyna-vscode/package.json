@@ -1,0 +1,63 @@
+{
+    "name": "reyna-language",
+    "displayName": "Reyna Language",
+    "description": "Syntax highlighting and snippets for Reyna programming language",
+    "version": "1.0.0",
+    "publisher": "reyna-lang",
+    "engines": {
+        "vscode": "^1.74.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Snippets"
+    ],
+    "keywords": [
+        "reyna",
+        "language",
+        "programming",
+        "typed",
+        "jit"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourusername/reyna"
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "reyna",
+                "aliases": [
+                    "Reyna",
+                    "reyna"
+                ],
+                "extensions": [
+                    ".reyna"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "reyna",
+                "scopeName": "source.reyna",
+                "path": "./syntaxes/reyna.tmLanguage.json"
+            }
+        ],
+        "snippets": [
+            {
+                "language": "reyna",
+                "path": "./snippets/reyna.json"
+            }
+        ]
+    },
+    "icon": "icon.png",
+    "galleryBanner": {
+        "color": "#1e1e1e",
+        "theme": "dark"
+    }
+}
+
+
+
+
+

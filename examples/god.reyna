@@ -1,0 +1,20 @@
+print "--- God Mode Activated ---";
+
+print "1. Time Travel (Clock)";
+let t1 = clock();
+print t1;
+
+print "2. Omniscience (File System)";
+let path = "setup_log.txt";
+write_file(path, "Reyna was here at " + str(t1));
+print "Wrote to " + path;
+
+let content = read_file(path);
+print "Read back: " + content;
+
+print "3. Telepathy (Input)";
+let name = input("Who goes there? ");
+print "Welcome, " + name;
+
+print "4. Omnipotence (Python Eval)";
+python("import os; print('I am running inside Python process: ' + str(os.getpid()))");

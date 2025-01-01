@@ -1,0 +1,20 @@
+// Test error handling
+print "--- Testing try/catch ---";
+
+fn risky() {
+    print "In risky function...";
+    throw "Something went wrong!";
+    print "This should not print";
+}
+
+try {
+    print "Before risky call";
+    risky();
+    print "After risky call (should not print)";
+} catch (e) {
+    print "Caught exception:";
+    print e;
+}
+
+print "Execution continues after catch";
+print "--- Test Complete ---";

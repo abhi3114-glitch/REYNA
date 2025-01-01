@@ -1,0 +1,21 @@
+// Test module imports
+import "examples/math.reyna";
+
+print "--- Testing Imports ---";
+
+let sum: int64 = add(5, 3);
+print "5 + 3 =";
+print sum;
+
+let product: int64 = multiply(4, 7);
+print "4 * 7 =";
+print product;
+
+let sq: int64 = square(6);
+print "6^2 =";
+print sq;
+
+print "PI =";
+print PI;
+
+print "--- Import Test Complete ---";

@@ -1,0 +1,4 @@
+llvmlite>=0.40.0; platform_system!="Emscripten"
+# standard library modules (os, sys, time, etc.) do not need to be listed
+
+

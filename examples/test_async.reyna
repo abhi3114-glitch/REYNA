@@ -1,0 +1,19 @@
+// Test async/await syntax
+print "--- Testing Async/Await ---";
+
+// Define an async function
+async fn fetchData() {
+    print "Fetching data...";
+}
+
+// Call async function  
+fetchData();
+
+// Another async function
+async fn compute() {
+    print "Computing...";
+}
+
+compute();
+
+print "--- Async/Await Complete ---";

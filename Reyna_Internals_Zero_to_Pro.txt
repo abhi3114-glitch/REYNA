@@ -1,0 +1,152 @@
+# REYNA LANGUAGE INTERNALS: ZERO TO PRO GUIDE
+# Author: Abhi
+# Date: December 2025
+
+This document is a comprehensive guide to understanding how the Reyna programming language works internally. It covers every stage of the pipeline effectively "lifting the hood" on how code execution actually happens.
+
+---
+
+CHAPTER 1: THE BIG PICTURE
+---------------------------
+Implementing a programming language is about transforming "human text" into "machine actions". We do this in stages:
+
+1. Lexing (Text -> Words)
+2. Parsing (Words -> Sentences/Trees)
+3. Compiling (Trees -> Instructions)
+4. Virtual Machine (Instructions -> Actions)
+
+Reyna is a "Bytecode Interpreted" language, similar to Java or Python. It does NOT compile to machine code (like C++) directly. It compiles to an intermediate format called "chunks" that a software CPU (the VM) executes.
+
+---
+
+CHAPTER 2: THE LEXER (src/lexer.py)
+-----------------------------------
+The Lexer (or Scanner) is the first step. Its job is to group characters into "Tokens".
+
+*   **Problem**: The computer sees "let x = 10;". It doesn't know what "let" means. It just sees 'l', 'e', 't'.
+*   **Solution**: The Lexer loops through the characters.
+    1. It sees 'l', 'e', 't' -> Matches keyword "let" -> Emits TOKEN_LET.
+    2. It sees ' ' (space) -> Skips it.
+    3. It sees 'x' -> Matches identifier -> Emits TOKEN_IDENTIFIER("x").
+    4. It sees '=' -> Matches operator -> Emits TOKEN_EQUAL.
+    5. It sees '1', '0' -> Matches number -> Emits TOKEN_NUMBER(10).
+
+**Key Concept: Lookahead**
+Sometimes one character isn't enough. If we see '!', is it "Not" (`!`) or "Not Equal" (`!=`)? The lexer must "peek" at the next character to decide.
+
+---
+
+CHAPTER 3: THE PARSER (src/parser.py)
+-------------------------------------
+Tokens are just a flat list. The Parser organizes them into a structure grammar. We use an "Abstract Syntax Tree" (AST).
+
+*   **Input**: Let Token, Identifier Token, Equal Token, Number Token.
+*   **Output**: A VariableDeclaration Node.
+    *   Node Name: "x"
+    *   Node Initializer: Number(10)
+
+**Algorithm: Recursive Descent**
+Reyna uses Recursive Descent parsing. This means we write a function for every grammar rule.
+*   `parse_statement()` calls `parse_expression()`
+*   `parse_expression()` calls `parse_term()`
+*   `parse_term()` calls `parse_factor()`
+
+This hierarchy handles **Precedence**. Because `parse_factor` (numbers) is deeper than `parse_term` (addition), multiplication happens before addition.
+
+---
+
+CHAPTER 4: STATIC TYPE CHECKING (src/type_checker.py)
+-----------------------------------------------------
+Before we run the code, we check for logic errors. This is what makes Reyna "Statically Typed".
+
+*   **The Pass**: The Type Checker walks the AST *before* compilation.
+*   **Scopes**: It maintains a stack of "Scopes" (maps of variable names to types).
+    *   When you enter `{`, push a scope.
+    *   When you leave `}`, pop a scope.
+*   **Validation**:
+    *   If you type `let x: int = "hello";`, the checker sees type mismatch (Int vs String) and raises an error immediately.
+
+---
+
+CHAPTER 5: THE COMPILER & BYTECODE (src/compiler.py)
+----------------------------------------------------
+This is where Reyna differs from a simple tree-walk interpreter. We flatten the AST into linear instructions.
+
+**Bytecode**: A compact binary representation of the code.
+Example: `print 5 + 3;` compiles to:
+1. `OP_CONSTANT 5`  (Push 5 to stack)
+2. `OP_CONSTANT 3`  (Push 3 to stack)
+3. `OP_ADD`         (Pop 5, 3. Add them. Push 8)
+4. `OP_PRINT`       (Pop 8 and print it)
+
+**Why Bytecode?**
+It's fast. Skipping the tree traversal at runtime avoids pointer chasing and makes the CPU cache much happier.
+
+---
+
+CHAPTER 6: THE VIRTUAL MACHINE (src/vm_core.py)
+-----------------------------------------------
+The VM is a software emulation of a CPU.
+
+**Components:**
+1.  **Instruction Pointer (IP)**: Points to the next bytecode to execute.
+2.  **Stack**: A simpler memory model than registers. All operations happen here.
+3.  **Call Stack**: Tracks function calls. When `fn A` calls `fn B`, we push a "Call Frame" for B. When B returns, we pop the frame and resume A.
+
+**The Loop:**
+The VM runs an infinite loop:
+```python
+while True:
+    instruction = read_byte_at(IP)
+    IP += 1
+    decode_and_execute(instruction)
+```
+
+---
+
+CHAPTER 7: GARBAGE COLLECTION (src/reyna_gc.py)
+-----------------------------------------------
+Reyna manages memory automatically using a "Mark-and-Sweep" Garbage Collector.
+
+**The Problem**: If you create a struct `let p = Point()`, it takes up memory. When `p` is no longer used, we must free that memory.
+
+**The Algorithm**:
+1.  **Mark**: Pause execution. Start from "Roots" (global variables, items on the stack). Recursively follow every pointer/reference. Mark every object we reach as "Alive".
+2.  **Sweep**: Loop through ALL allocated objects. If an object is NOT marked "Alive", it is unreachable garbage. Delete it.
+3.  **Strings**: Reyna uses "String Interning". If you have the string "hello" twice, we store it once and just reuse the pointer.
+
+---
+
+CHAPTER 8: CLOSURES (The Hardest Part)
+--------------------------------------
+A closure is a function that remembers variables from outside its body.
+
+Example:
+```javascript
+fn makeAdder(x) {
+  fn add(y) { return x + y; } // 'add' uses 'x' from outside!
+  return add;
+}
+```
+
+**How it works (Upvalues)**:
+When `makeAdder` returns, its local variable `x` would normally be deleted from the stack.
+But the VM sees that `add` needs `x`.
+So, the VM **moves** `x` from the temporary Stack to the permanent Heap. This is called "closing an upvalue". The function `add` gets a hidden pointer to this Heap value.
+
+---
+
+CHAPTER 9: PATTERN MATCHING & ASYNC
+-----------------------------------
+**Pattern Matching**:
+Implemented not as magic, but by compiling high-level logical patterns into a series of `OP_EQUAL` and `OP_JUMP` instructions. It's syntactic sugar for optimized if-else chains.
+
+**Async/Await**:
+Currently implemented as syntactic sugar in the compiler. `async fn` is flagged, and `await` ensures the underlying promise (or future value) is resolved before proceeding.
+
+---
+
+This is the entire architecture of Reyna. It is a complete, self-hosting language system.
+
+
+

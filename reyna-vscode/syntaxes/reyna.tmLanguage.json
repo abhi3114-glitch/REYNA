@@ -1,0 +1,181 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "Reyna",
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#classes"
+        },
+        {
+            "include": "#operators"
+        },
+        {
+            "include": "#variables"
+        }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.reyna",
+                    "match": "//.*$"
+                },
+                {
+                    "name": "comment.block.reyna",
+                    "begin": "/\\*",
+                    "end": "\\*/"
+                }
+            ]
+        },
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.reyna",
+                    "begin": "\"",
+                    "end": "\"",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.reyna",
+                            "match": "\\\\."
+                        }
+                    ]
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.float.reyna",
+                    "match": "\\b\\d+\\.\\d+\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.reyna",
+                    "match": "\\b\\d+\\b"
+                }
+            ]
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.reyna",
+                    "match": "\\b(if|else|while|for|return|break|continue|match)\\b"
+                },
+                {
+                    "name": "keyword.declaration.reyna",
+                    "match": "\\b(let|fn|class|struct|import|export)\\b"
+                },
+                {
+                    "name": "keyword.operator.reyna",
+                    "match": "\\b(and|or|not)\\b"
+                },
+                {
+                    "name": "keyword.other.reyna",
+                    "match": "\\b(this|super|new|async|await|try|catch|throw|finally)\\b"
+                },
+                {
+                    "name": "constant.language.reyna",
+                    "match": "\\b(true|false|nil)\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "name": "storage.type.reyna",
+                    "match": "\\b(int64|float64|bool|string|array|void)\\b"
+                },
+                {
+                    "name": "storage.type.class.reyna",
+                    "match": "\\b([A-Z][a-zA-Z0-9]*)\\b"
+                }
+            ]
+        },
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.reyna",
+                    "match": "\\b([a-z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+                },
+                {
+                    "name": "support.function.builtin.reyna",
+                    "match": "\\b(print|input|clock|read_file|write_file|python|int|float|str)\\b"
+                }
+            ]
+        },
+        "classes": {
+            "patterns": [
+                {
+                    "match": "\\b(class)\\s+([A-Z][a-zA-Z0-9]*)\\s*(<\\s*([A-Z][a-zA-Z0-9]*))?",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.declaration.class.reyna"
+                        },
+                        "2": {
+                            "name": "entity.name.class.reyna"
+                        },
+                        "4": {
+                            "name": "entity.other.inherited-class.reyna"
+                        }
+                    }
+                },
+                {
+                    "match": "\\b(struct)\\s+([A-Z][a-zA-Z0-9]*)",
+                    "captures": {
+                        "1": {
+                            "name": "keyword.declaration.struct.reyna"
+                        },
+                        "2": {
+                            "name": "entity.name.struct.reyna"
+                        }
+                    }
+                }
+            ]
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.comparison.reyna",
+                    "match": "(==|!=|<=|>=|<|>)"
+                },
+                {
+                    "name": "keyword.operator.arithmetic.reyna",
+                    "match": "(\\+|-|\\*|/|%)"
+                },
+                {
+                    "name": "keyword.operator.assignment.reyna",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arrow.reyna",
+                    "match": "->"
+                }
+            ]
+        },
+        "variables": {
+            "patterns": [
+                {
+                    "name": "variable.other.reyna",
+                    "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
+                }
+            ]
+        }
+    },
+    "scopeName": "source.reyna"
+}

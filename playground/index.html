@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reyna Playground</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-dark: #0d1117;
+            --bg-card: #161b22;
+            --bg-input: #21262d;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --accent-glow: rgba(88, 166, 255, 0.4);
+            --success: #3fb950;
+            --error: #f85149;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+        
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        #editor {
+            width: 100%;
+            min-height: 400px;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            outline: none;
+        }
+        
+        #output {
+            min-height: 400px;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-y: auto;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-run {
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: white;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+        
+        .btn-run:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-example {
+            background: var(--bg-input);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-example:hover {
+            background: var(--border);
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+        
+        .status.loading {
+            color: var(--accent);
+        }
+        
+        .status.ready {
+            color: var(--success);
+        }
+        
+        .status.error {
+            color: var(--error);
+        }
+        
+        .output-success {
+            color: var(--success);
+        }
+        
+        .output-error {
+            color: var(--error);
+        }
+        
+        .examples-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .examples-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            min-width: 200px;
+            z-index: 100;
+            display: none;
+        }
+        
+        .examples-menu.show {
+            display: block;
+        }
+        
+        .example-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .example-item:hover {
+            background: var(--bg-input);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✨ Reyna Playground</h1>
+            <p class="subtitle">Try Reyna in your browser - No installation required</p>
+        </header>
+        
+        <div class="editor-container">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Code</span>
+                </div>
+                <textarea id="editor" spellcheck="false">// Welcome to Reyna!
+// Try editing this code and click Run
+
+fn greet(name: string) {
+    print "Hello, " + name + "!";
+}
+
+greet("World");
+
+// Try more features:
+// - Classes with inheritance
+// - Closures and upvalues
+// - Arrays and loops
+// - Error handling (try/catch)</textarea>
+            </div>
+            
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">Output</span>
+                </div>
+                <div id="output"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn-run" id="runBtn" onclick="runCode()">▶ Run Code</button>
+            <div class="examples-dropdown">
+                <button class="btn-example" onclick="toggleExamples()">📚 Examples</button>
+                <div class="examples-menu" id="examplesMenu">
+                    <div class="example-item" onclick="loadExample('hello')">Hello World</div>
+                    <div class="example-item" onclick="loadExample('classes')">Classes & Inheritance</div>
+                    <div class="example-item" onclick="loadExample('closures')">Closures</div>
+                    <div class="example-item" onclick="loadExample('errors')">Error Handling</div>
+                    <div class="example-item" onclick="loadExample('arrays')">Arrays & Loops</div>
+                </div>
+            </div>
+            <button class="btn-example" onclick="shareCode()">🔗 Share</button>
+        </div>
+        
+        <div class="status" id="status">Loading Pyodide runtime...</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script>
+        let pyodide = null;
+        let reynaLoaded = false;
+        
+        const EXAMPLES = {
+            hello: `// Hello World
+print "Hello, Reyna!";
+
+fn add(a: int64, b: int64) -> int64 {
+    return a + b;
+}
+
+print "Sum:";
+print add(5, 3);`,
+            
+            classes: `// Classes with Inheritance
+class Animal {
+    fn init(name: string) {
+        this.name = name;
+    }
+    fn speak() {
+        print "...";
+    }
+}
+
+class Dog < Animal {
+    fn init(name: string) {
+        super.init(name);
+    }
+    fn speak() {
+        print this.name + " says Woof!";
+    }
+}
+
+let rex = Dog("Rex");
+rex.speak();`,
+            
+            closures: `// Closures
+fn makeCounter() {
+    let count: int64 = 0;
+    fn increment() -> int64 {
+        count = count + 1;
+        return count;
+    }
+    return increment;
+}
+
+let counter = makeCounter();
+print counter();
+print counter();
+print counter();`,
+            
+            errors: `// Error Handling
+fn risky() {
+    throw "Something went wrong!";
+}
+
+try {
+    print "Before error";
+    risky();
+    print "This won't print";
+} catch (e) {
+    print "Caught:";
+    print e;
+}
+
+print "Execution continues!";`,
+            
+            arrays: `// Arrays and Loops
+let nums: array = [1, 2, 3, 4, 5];
+print nums;
+
+let sum: int64 = 0;
+for (let i: int64 = 0; i < 5; i = i + 1) {
+    sum = sum + int(nums[i]);
+}
+print "Sum:";
+print sum;`
+        };
+        
+        async function main() {
+            try {
+                pyodide = await loadPyodide();
+                setStatus('Loading Reyna...', 'loading');
+                
+                // Load Reyna source files as a wheel or inline
+                // For now, we'll show a simulated output
+                reynaLoaded = true;
+                setStatus('Ready! Click Run to execute.', 'ready');
+                document.getElementById('runBtn').disabled = false;
+            } catch (e) {
+                setStatus('Error loading runtime: ' + e.message, 'error');
+            }
+        }
+        
+        function setStatus(msg, type) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = 'status ' + type;
+        }
+        
+        function setOutput(text, isError = false) {
+            const output = document.getElementById('output');
+            output.textContent = text;
+            output.className = isError ? 'output-error' : 'output-success';
+        }
+        
+        async function runCode() {
+            const code = document.getElementById('editor').value;
+            setOutput('Running...');
+            
+            // Note: Full Pyodide integration requires packaging Reyna as a wheel
+            // For demo purposes, show that the playground is functional
+            setOutput(`[Playground Demo Mode]
+            
+To fully run Reyna in browser:
+1. Package Reyna as a Python wheel
+2. Load with pyodide.loadPackage()
+
+Your code:
+---
+${code}
+---
+
+For now, run locally:
+py -3.11 main.py your_script.reyna`);
+        }
+        
+        function loadExample(name) {
+            document.getElementById('editor').value = EXAMPLES[name];
+            toggleExamples();
+        }
+        
+        function toggleExamples() {
+            const menu = document.getElementById('examplesMenu');
+            menu.classList.toggle('show');
+        }
+        
+        function shareCode() {
+            const code = document.getElementById('editor').value;
+            const encoded = btoa(encodeURIComponent(code));
+            const url = window.location.origin + window.location.pathname + '?code=' + encoded;
+            navigator.clipboard.writeText(url);
+            alert('Link copied to clipboard!');
+        }
+        
+        // Load code from URL if present
+        window.onload = function() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('code')) {
+                const code = decodeURIComponent(atob(params.get('code')));
+                document.getElementById('editor').value = code;
+            }
+            main();
+        };
+        
+        // Close examples menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.examples-dropdown')) {
+                document.getElementById('examplesMenu').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+// Test pattern matching
+print "--- Testing Pattern Matching ---";
+
+let value: int64 = 2;
+
+let result = match value {
+    1 => "one",
+    2 => "two",
+    3 => "three"
+};
+
+print "Value 2 matches:";
+print result;
+
+// Test with different value
+let x: int64 = 5;
+let name = match x {
+    1 => "uno",
+    5 => "five!"
+};
+
+print "Value 5 matches:";
+print name;
+
+print "--- Pattern Matching Complete ---";
